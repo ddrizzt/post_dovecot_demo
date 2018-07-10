@@ -1,0 +1,281 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "AWS CloudFormation Sample, start a single EC2 instance with give AMI ImageID. ",
+  "Parameters" : {
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type" : "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+    },
+    "InstanceType" : {
+      "Description" : "WebServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues" : ["t2.micro"],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+    "SSHLocation" : {
+      "Description" : "The IP address range that can be used to SSH to the EC2 instances",
+      "Type" : "String",
+      "MinLength" : "9",
+      "MaxLength" : "18",
+      "Default" : "0.0.0.0/0",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
+    }
+  },
+  
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "t2.micro" : {"Arch" : "HVM64"}
+    },
+    "AWSInstanceType2NATArch" : {
+      "t2.micro" : {"Arch" : "NATHVM64"}
+    },
+    "AWSRegionArch2AMI" : {
+      "us-west-2" : {"HVM64" : "ami-a9d09ed1"}
+    }
+  },
+  
+  "Resources" : {
+    "IamProfile" : {
+      "Type" : "AWS::IAM::InstanceProfile",
+      "Properties" : {
+        "Path" : "/",
+        "Roles" : ["access_shdevops_s3bucket"]
+      }
+    },
+    
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access via port 22",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : {"Ref" : "SSHLocation"}
+          },
+          {
+            "IpProtocol" : "tcp", "FromPort" : "143", "ToPort" : "143", "CidrIp" : {"Ref" : "SSHLocation"}
+          },
+          {
+            "IpProtocol" : "tcp", "FromPort" : "110", "ToPort" : "110", "CidrIp" : {"Ref" : "SSHLocation"}
+          },
+          {
+            "IpProtocol" : "tcp", "FromPort" : "9090", "ToPort" : "9090", "CidrIp" : {"Ref" : "SSHLocation"}
+          },
+          {
+            "IpProtocol" : "tcp", "FromPort" : "25", "ToPort" : "25", "CidrIp" : {"Ref" : "SSHLocation"}
+          }
+        ]
+      }
+    },
+    
+    "EC2Postfix" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "InstanceType" : {"Ref" : "InstanceType"},
+        "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
+        "KeyName" : {"Ref" : "KeyName"},
+        "ImageId" : {
+          "Fn::FindInMap" : [
+            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
+            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
+          ]
+        },
+        "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "EC2_Postfix"
+          }
+        ],
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [
+              "", [
+                "#!/bin/bash\n",
+                "yum install -y python-pip tree mysql amazon-efs-utils telnet\n",
+                "pip install s3cmd s4cmd\n",
+                "chmod +x /usr/bin/s3cmd\n",
+                "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
+                "unzip awscli-bundle.zip\n",
+                "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"},
+                " --region ", {"Ref" : "AWS::Region"},
+                " --resource EC2Postfix ",
+                " --configsets Initialize\n"
+              ]
+            ]
+          }
+        }
+      },
+      
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "Initialize" : [
+              "Install"
+            ]
+          },
+          "Install" : {
+            "commands" : {
+              "init" : {
+                "command" : {
+                  "Fn::Join" : [
+                    "", [
+                      "cd /mnt",
+                      " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
+                      " && export DOMAIN=`curl -s http://169.254.169.254/latest/meta-data/public-hostname`",
+                      " && chmod +x /mnt/post_dovecot_demo/initial_postfix.sh && sh /mnt/post_dovecot_demo/initial_postfix.sh"
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "ASGDovecotDirector" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
+        "MinSize" : "2",
+        "MaxSize" : "3",
+        "AvailabilityZones" : ["us-west-2a"]
+      },
+      "CreationPolicy" : {
+        "ResourceSignal" : {
+          "Timeout" : "PT10M",
+          "Count" : "1"
+        }
+      },
+      "UpdatePolicy" : {
+        "AutoScalingRollingUpdate" : {
+          "MinInstancesInService" : "1",
+          "MaxBatchSize" : "1",
+          "PauseTime" : "PT10M",
+          "WaitOnResourceSignals" : "true"
+        }
+      }
+    },
+    
+    "LaunchConfigDovecotDirector" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata" : {
+        "Comment" : "Install a simple application"
+      },
+      "Properties" : {
+        "InstanceType" : {"Ref" : "InstanceType"},
+        "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
+        "KeyName" : {"Ref" : "KeyName"},
+        "ImageId" : {
+          "Fn::FindInMap" : [
+            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
+            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
+          ]
+        },
+        "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [
+              "", [
+                "#!/bin/bash\n",
+                "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
+                "pip install s3cmd s4cmd\n",
+                "chmod +x /usr/bin/s3cmd\n",
+                "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
+                "unzip awscli-bundle.zip\n",
+                "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource LaunchConfigDovecotDirector\n",
+                "/opt/aws/bin/cfn-signal -e $? --stack ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource ASGDovecotDirector\n",
+                "cd /mnt",
+                " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
+                " && chmod +x /mnt/post_dovecot_demo/initial_dovecotdirector.sh && sh /mnt/post_dovecot_demo/initial_dovecotdirector.sh\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    
+    "ASGDovecotBackend" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotBackend"},
+        "MinSize" : "2",
+        "MaxSize" : "2",
+        "AvailabilityZones" : ["us-west-2a"]
+      },
+      "CreationPolicy" : {
+        "ResourceSignal" : {
+          "Timeout" : "PT10M",
+          "Count" : "1"
+        }
+      },
+      "UpdatePolicy" : {
+        "AutoScalingRollingUpdate" : {
+          "MinInstancesInService" : "1",
+          "MaxBatchSize" : "1",
+          "PauseTime" : "PT10M",
+          "WaitOnResourceSignals" : "true"
+        }
+      }
+    },
+    
+    "LaunchConfigDovecotBackend" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata" : {
+        "Comment" : "Install a simple application"
+      },
+      "Properties" : {
+        "InstanceType" : {"Ref" : "InstanceType"},
+        "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
+        "KeyName" : {"Ref" : "KeyName"},
+        "ImageId" : {
+          "Fn::FindInMap" : [
+            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
+            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
+          ]
+        },
+        "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [
+              "", [
+                "#!/bin/bash\n",
+                "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
+                "pip install s3cmd s4cmd\n",
+                "chmod +x /usr/bin/s3cmd\n",
+                "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
+                "unzip awscli-bundle.zip\n",
+                "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource LaunchConfigDovecotBackend\n",
+                "/opt/aws/bin/cfn-signal -e $? --stack ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource ASGDovecotBackend\n",
+                "cd /mnt",
+                " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
+                " && chmod +x /mnt/post_dovecot_demo/initial_dovecotbackend.sh && sh /mnt/post_dovecot_demo/initial_dovecotbackend.sh\n"
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  
+  "Outputs" : {
+    "EC2PublicInfoPostfix" : {
+      "Description" : "Public InstanceID / DNS / IP of postfix_ec2.",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "EC2Postfix"}, " / ", {"Fn::GetAtt" : ["EC2Postfix", "PublicDnsName"]}, " / ", {"Fn::GetAtt" : ["EC2Postfix", "PublicIp"]}]]}
+    },
+    "ASGDovecotBackend" : {
+      "Description" : "ASG ID",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "ASGDovecotBackend"}, " "]]}
+    },
+    "ASGDovecotDirector" : {
+      "Description" : "ASG ID",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "ASGDovecotDirector"}, " "]]}
+    }
+  }
+}

@@ -1,0 +1,12 @@
+driver = mysql
+
+connect = host=dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com dbname=servermail user=dovecot password=dovecot123 port=3306
+
+default_pass_scheme = SHA512-CRYPT
+
+password_query = SELECT email as user, password, 'Y' as proxy, '127.0.0.1' as host, 'Y' as proxy_maybe FROM virtual_users WHERE email='%u'
+
+user_query = SELECT concat('/efs/Mail/', '%n') as home, uid, gid FROM virtual_users WHERE email = '%u'
+
+# For using doveadm -A:
+iterate_query = SELECT a.email as username, b.name FROM virtual_users as a LEFT JOIN virtual_domains as b on a.domain_id = b.id

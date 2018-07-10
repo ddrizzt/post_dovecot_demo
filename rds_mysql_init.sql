@@ -1,0 +1,46 @@
+DROP TABLE IF exists `virtual_domains`;
+CREATE TABLE `virtual_domains` (
+  `id` int(11) NOT NULL auto_increment,
+  `name` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF exists `virtual_aliases`;
+CREATE TABLE `virtual_aliases` (
+  `id` int(11) NOT NULL auto_increment,
+  `domain_id` int(11) NOT NULL,
+  `source` varchar(100) NOT NULL,
+  `destination` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF exists `virtual_users`;
+CREATE TABLE `virtual_users` (
+  `id` int(11) NOT NULL auto_increment,
+  `domain_id` int(11) NOT NULL,
+  `password` varchar(106) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `uid` int(11) NOT NULL,
+  `gid` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `virtual_domains`
+  (`id` ,`name`)
+VALUES
+  ('1', '[DOMAIN]'),
+  ('2', 'localhost.[DOMAIN]');
+
+INSERT INTO `virtual_users`
+  (`id`, `domain_id`, `password` , `email`, `uid`, `gid`)
+VALUES
+  ('1', '1', ENCRYPT('guest123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'guest@[DOMAIN]', 2200, 2200),
+  ('2', '1', ENCRYPT('kevin123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'kevin@[DOMAIN]', 2101, 2101),
+  ('3', '1', ENCRYPT('eric123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'eric@[DOMAIN]', 2102, 2102),
+  ('4', '1', ENCRYPT('tom123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'tom@[DOMAIN]', 2103, 2103),
+  ('5', '1', ENCRYPT('jason123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'jason@[DOMAIN]', 2104, 2104),
+  ('6', '1', ENCRYPT('peter123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'peter@[DOMAIN]', 2105, 2105);
+
+
+
