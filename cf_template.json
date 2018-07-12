@@ -46,6 +46,36 @@
       }
     },
     
+    "SubnetBackend" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : "vpc-3f76ab5a",
+        "CidrBlock" : "172.31.100.0/27",
+        "AvailabilityZone" : "us-west-2a",
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "-SubnetBackend"]]}
+          }
+        ]
+      }
+    },
+    
+    "SubnetDirector" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : "vpc-3f76ab5a",
+        "CidrBlock" : "172.31.101.0/27",
+        "AvailabilityZone" : "us-west-2a",
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "-SubnetDirector"]]}
+          }
+        ]
+      }
+    },
+    
     "InstanceSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
@@ -143,7 +173,7 @@
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
         "MinSize" : "2",
         "MaxSize" : "3",
-        "AvailabilityZones" : ["us-west-2a"]
+        "VPCZoneIdentifier" : [{"Ref" : "SubnetDirector"}]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
@@ -206,7 +236,7 @@
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotBackend"},
         "MinSize" : "2",
         "MaxSize" : "2",
-        "AvailabilityZones" : ["us-west-2a"]
+        "VPCZoneIdentifier" : [{"Ref" : "SubnetBackend"}]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
