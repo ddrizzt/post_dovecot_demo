@@ -173,7 +173,7 @@
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
         "MinSize" : "2",
         "MaxSize" : "3",
-        "VPCZoneIdentifier" : [{"Ref" : "SubnetDirector"}]
+        "AvailabilityZones" : ["us-west-2a"]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
@@ -213,7 +213,7 @@
               "", [
                 "#!/bin/bash\n",
                 "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
-                "pip install s3cmd s4cmd\n",
+                "pip install s3cmd s4cmd mysql-connector-python\n",
                 "chmod +x /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
@@ -236,7 +236,7 @@
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotBackend"},
         "MinSize" : "2",
         "MaxSize" : "2",
-        "VPCZoneIdentifier" : [{"Ref" : "SubnetBackend"}]
+        "AvailabilityZones" : ["us-west-2a"]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {

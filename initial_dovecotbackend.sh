@@ -8,3 +8,7 @@ mv /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.bak
 cp /mnt/post_dovecot_demo/dovecot_backend.conf /etc/dovecot/dovecot.conf
 cp /mnt/post_dovecot_demo/dovecot-bg-sql.conf.ext /etc/dovecot/
 service dovecot restart
+
+#Deploy crontab for heartbeat.sh
+chmod +x /mnt/post_dovecot_demo/heartbeat.sh
+echo "* * * * * /mnt/post_dovecot_demo/heartbeat.sh backend" > heartbeat.cron && crontab -u root heartbeat.cron && rm -f heartbeat.cron
