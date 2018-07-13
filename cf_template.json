@@ -177,7 +177,7 @@
         "Tags" : [
           {
             "Key" : "Name",
-            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "ASGBackend"]]},
+            "Value" : {"Fn::Join" : ["", ["ASGBackend-", {"Ref" : "AWS::StackName"}]]},
             "PropagateAtLaunch" : "true"
           }
         ]
@@ -246,7 +246,7 @@
         "Tags" : [
           {
             "Key" : "Name",
-            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "ASGDirector"]]},
+            "Value" : {"Fn::Join" : ["", ["ASGDirector-", {"Ref" : "AWS::StackName"}]]},
             "PropagateAtLaunch" : "true"
           }
         ]
