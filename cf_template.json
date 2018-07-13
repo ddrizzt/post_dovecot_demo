@@ -173,7 +173,14 @@
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotBackend"},
         "MinSize" : "2",
         "MaxSize" : "2",
-        "AvailabilityZones" : ["us-west-2a"]
+        "AvailabilityZones" : ["us-west-2a"],
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "ASGBackend"]]},
+            "PropagateAtLaunch" : "true"
+          }
+        ]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
@@ -235,7 +242,14 @@
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
         "MinSize" : "2",
         "MaxSize" : "3",
-        "AvailabilityZones" : ["us-west-2a"]
+        "AvailabilityZones" : ["us-west-2a"],
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "ASGDirector"]]},
+            "PropagateAtLaunch" : "true"
+          }
+        ]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
