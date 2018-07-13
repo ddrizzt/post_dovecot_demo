@@ -43,4 +43,15 @@ VALUES
   ('6', '1', ENCRYPT('peter123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'peter@[DOMAIN]', 2105, 2105);
 
 
-
+/**
+ Tables to maintain the dovecot director and backend server list.
+ */
+DROP TABLE IF exists `backend_director_ips`;
+CREATE TABLE `backend_director_ips` (
+  `type` varchar(10) NOT NULL, /* director or backend */
+  `local_ip4` varchar(25) NOT NULL,
+  `public_dns` varchar(100) NOT NULL,
+  `private_dns` varchar(100) NOT NULL,
+  `updated_at` timestamp NOT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`type`, `local_ip4`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

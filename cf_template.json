@@ -167,88 +167,32 @@
       }
     },
     
-    "ASGDovecotDirector" : {
-      "Type" : "AWS::AutoScaling::AutoScalingGroup",
-      "Properties" : {
-        "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
-        "MinSize" : "2",
-        "MaxSize" : "3",
-        "VPCZoneIdentifier" : [{"Ref" : "SubnetDirector"}]
-      },
-      "CreationPolicy" : {
-        "ResourceSignal" : {
-          "Timeout" : "PT10M",
-          "Count" : "1"
-        }
-      },
-      "UpdatePolicy" : {
-        "AutoScalingRollingUpdate" : {
-          "MinInstancesInService" : "1",
-          "MaxBatchSize" : "1",
-          "PauseTime" : "PT10M",
-          "WaitOnResourceSignals" : "true"
-        }
-      }
-    },
-    
-    "LaunchConfigDovecotDirector" : {
-      "Type" : "AWS::AutoScaling::LaunchConfiguration",
-      "Metadata" : {
-        "Comment" : "Install a simple application"
-      },
-      "Properties" : {
-        "InstanceType" : {"Ref" : "InstanceType"},
-        "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
-        "KeyName" : {"Ref" : "KeyName"},
-        "ImageId" : {
-          "Fn::FindInMap" : [
-            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
-            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
-          ]
-        },
-        "IamInstanceProfile" : {"Ref" : "IamProfile"},
-        "UserData" : {
-          "Fn::Base64" : {
-            "Fn::Join" : [
-              "", [
-                "#!/bin/bash\n",
-                "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
-                "pip install s3cmd s4cmd\n",
-                "chmod +x /usr/bin/s3cmd\n",
-                "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
-                "unzip awscli-bundle.zip\n",
-                "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
-                "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource LaunchConfigDovecotDirector\n",
-                "/opt/aws/bin/cfn-signal -e $? --stack ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource ASGDovecotDirector\n",
-                "cd /mnt",
-                " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
-                " && chmod +x /mnt/post_dovecot_demo/initial_dovecotdirector.sh && sh /mnt/post_dovecot_demo/initial_dovecotdirector.sh\n"
-              ]
-            ]
-          }
-        }
-      }
-    },
-    
     "ASGDovecotBackend" : {
       "Type" : "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotBackend"},
         "MinSize" : "2",
         "MaxSize" : "2",
-        "VPCZoneIdentifier" : [{"Ref" : "SubnetBackend"}]
+        "AvailabilityZones" : ["us-west-2a"],
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "ASGBackend"]]},
+            "PropagateAtLaunch" : "true"
+          }
+        ]
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
-          "Timeout" : "PT10M",
+          "Timeout" : "PT5M",
           "Count" : "1"
         }
       },
       "UpdatePolicy" : {
         "AutoScalingRollingUpdate" : {
-          "MinInstancesInService" : "1",
+          "MinInstancesInService" : "2",
           "MaxBatchSize" : "1",
-          "PauseTime" : "PT10M",
+          "PauseTime" : "PT5M",
           "WaitOnResourceSignals" : "true"
         }
       }
@@ -281,11 +225,79 @@
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
-                "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource LaunchConfigDovecotBackend\n",
-                "/opt/aws/bin/cfn-signal -e $? --stack ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource ASGDovecotBackend\n",
                 "cd /mnt",
                 " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
-                " && chmod +x /mnt/post_dovecot_demo/initial_dovecotbackend.sh && sh /mnt/post_dovecot_demo/initial_dovecotbackend.sh\n"
+                " && chmod +x /mnt/post_dovecot_demo/initial_dovecotbackend.sh && sh /mnt/post_dovecot_demo/initial_dovecotbackend.sh\n",
+                "/opt/aws/bin/cfn-signal -e $? --stack ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource ASGDovecotBackend\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    
+    "ASGDovecotDirector" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
+        "MinSize" : "2",
+        "MaxSize" : "3",
+        "AvailabilityZones" : ["us-west-2a"],
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "ASGDirector"]]},
+            "PropagateAtLaunch" : "true"
+          }
+        ]
+      },
+      "CreationPolicy" : {
+        "ResourceSignal" : {
+          "Timeout" : "PT5M",
+          "Count" : "1"
+        }
+      },
+      "UpdatePolicy" : {
+        "AutoScalingRollingUpdate" : {
+          "MinInstancesInService" : "2",
+          "MaxBatchSize" : "1",
+          "PauseTime" : "PT5M",
+          "WaitOnResourceSignals" : "true"
+        }
+      }
+    },
+    
+    "LaunchConfigDovecotDirector" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata" : {
+        "Comment" : "Install a simple application"
+      },
+      "Properties" : {
+        "InstanceType" : {"Ref" : "InstanceType"},
+        "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
+        "KeyName" : {"Ref" : "KeyName"},
+        "ImageId" : {
+          "Fn::FindInMap" : [
+            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
+            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
+          ]
+        },
+        "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [
+              "", [
+                "#!/bin/bash\n",
+                "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
+                "pip install s3cmd s4cmd mysql-connector-python\n",
+                "chmod +x /usr/bin/s3cmd\n",
+                "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
+                "unzip awscli-bundle.zip\n",
+                "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "cd /mnt",
+                " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
+                " && chmod +x /mnt/post_dovecot_demo/initial_dovecotdirector.sh && sh /mnt/post_dovecot_demo/initial_dovecotdirector.sh\n",
+                "/opt/aws/bin/cfn-signal -e $? --stack ", {"Ref" : "AWS::StackName"}, " --region ", {"Ref" : "AWS::Region"}, " --resource ASGDovecotDirector\n"
               ]
             ]
           }
