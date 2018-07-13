@@ -17,10 +17,10 @@ if os.path.isfile('/mnt/post_dovecot_demo/ipsdirector.dat'):
     ips_director__fromf = open('/mnt/post_dovecot_demo/ipsdirector.dat', 'r').read()
 
 cursor = db.cursor()
-cursor.execute("select group_concat(local_ip4 SEPARATOR ' ') from backend_director_ips where type = 'backend' group by 'all' order by 1")
+cursor.execute("select group_concat(local_ip4 SEPARATOR ' ') from backend_director_ips where type = 'backend' AND TIME_TO_SEC(TIMEDIFF(now(),updated_at)) < 100 group by 'all' order by 1")
 ips_backend = cursor.fetchone()
 
-cursor.execute("select group_concat(local_ip4 SEPARATOR ' ') from backend_director_ips where type = 'director' group by 'all' order by 1")
+cursor.execute("select group_concat(local_ip4 SEPARATOR ' ') from backend_director_ips where type = 'director' AND TIME_TO_SEC(TIMEDIFF(now(),updated_at)) < 100 group by 'all' order by 1")
 ips_director = cursor.fetchone()
 
 db.close()

@@ -9,9 +9,9 @@ cp /mnt/post_dovecot_demo/dovecot_director.conf /etc/dovecot/dovecot.conf
 
 mv /etc/dovecot/conf.d/10-director.conf mv /etc/dovecot/conf.d/10-director.conf.bak
 cd /mnt/post_dovecot_demo/ && cat 10-director.conf | perl -ne ' chomp($_);  $str = $_; $str =~ s/\[DIRECTOR_IPs\]/127.0.0.1/g; $str =~ s/\[BACKEND_IPs\]/127.0.0.1/g; print "$str\n";' > /etc/dovecot/conf.d/10-director.conf
-service dovecot restart
 
 #Deploy crontab for heartbeat.sh
 chmod +x /mnt/post_dovecot_demo/heartbeat.sh
-echo "* * * * * /mnt/post_dovecot_demo/heartbeat.sh director" > heartbeat.cron && crontab -u root heartbeat.cron && rm -f heartbeat.cron
-
+mkdir -p /mnt/post_dovecot_demo/logs/
+echo "* * * * * /mnt/post_dovecot_demo/heartbeat.sh director >> /mnt/post_dovecot_demo/logs/heartbeats.log 2>&1" > heartbeat.cron && crontab -u root heartbeat.cron && rm -f heartbeat.cron
+service dovecot restart
