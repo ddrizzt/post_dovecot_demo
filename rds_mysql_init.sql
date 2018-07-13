@@ -35,7 +35,7 @@ VALUES
 INSERT INTO `virtual_users`
   (`id`, `domain_id`, `password` , `email`, `uid`, `gid`)
 VALUES
-  ('1', '1', ENCRYPT('guest123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'guest@[DOMAIN]', 2200, 2200),
+  ('1', '1', ENCRYPT('guest123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'guest@[DOMAIN]', 2100, 2100),
   ('2', '1', ENCRYPT('kevin123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'kevin@[DOMAIN]', 2101, 2101),
   ('3', '1', ENCRYPT('eric123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'eric@[DOMAIN]', 2102, 2102),
   ('4', '1', ENCRYPT('tom123', CONCAT('$6$', SUBSTRING(SHA(RAND()), -16))), 'tom@[DOMAIN]', 2103, 2103),
