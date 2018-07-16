@@ -5,7 +5,7 @@ import os
 
 print '%s :: ====== Start =====' % datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-db = mysql.connector.connect(host="dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com", user="dovecot", password="dovecot123", database="servermail")
+db = mysql.connector.connect(host="dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com", user="dovecot", password="dovecot123", database="servermail2")
 
 ips_backend_fromf = ''
 ips_director__fromf = ''

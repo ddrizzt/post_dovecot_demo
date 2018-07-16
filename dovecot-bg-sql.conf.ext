@@ -1,6 +1,6 @@
 driver = mysql
 
-connect = host=dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com dbname=servermail user=dovecot password=dovecot123 port=3306
+connect = host=dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com dbname=servermail2 user=dovecot password=dovecot123 port=3306
 
 default_pass_scheme = SHA512-CRYPT
 

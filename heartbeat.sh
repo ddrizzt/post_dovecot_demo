@@ -9,7 +9,7 @@ cd /mnt/post_dovecot_demo/ && \
  DNSPUBLIC=`curl -s http://169.254.169.254/latest/meta-data/public-hostname` && \
  DNSPRIVATE=`curl -s http://169.254.169.254/latest/meta-data/local-hostname` && \
  echo "INSERT INTO backend_director_ips (type, local_ip4, public_dns, private_dns, updated_at) VALUES('$DOVECOT_TYPE', '$IPV4', '$DNSPUBLIC', '$DNSPRIVATE', now()) ON DUPLICATE KEY UPDATE updated_at=now();" |\
- mysql -hdovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com -udovecot -pdovecot123 -P3306 servermail
+ mysql -hdovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com -udovecot -pdovecot123 -P3306 servermail2
 
 
 if [ $1 = "director" ] ; then

@@ -22,57 +22,155 @@
       "Default" : "0.0.0.0/0",
       "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
-    }
-  },
-  
-  "Mappings" : {
-    "AWSInstanceType2Arch" : {
-      "t2.micro" : {"Arch" : "HVM64"}
     },
-    "AWSInstanceType2NATArch" : {
-      "t2.micro" : {"Arch" : "NATHVM64"}
+    "AvailabilityZone" : {
+      "Type" : "String",
+      "Default" : "us-west-2a"
     },
-    "AWSRegionArch2AMI" : {
-      "us-west-2" : {"HVM64" : "ami-a9d09ed1"}
+    "ImageId" : {
+      "Type" : "String",
+      "Default" : "ami-a9d09ed1"
     }
   },
   
   "Resources" : {
-    "IamProfile" : {
-      "Type" : "AWS::IAM::InstanceProfile",
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
       "Properties" : {
-        "Path" : "/",
-        "Roles" : ["access_shdevops_s3bucket"]
+        "CidrBlock" : "11.0.0.0/16",
+        "EnableDnsSupport" : true,
+        "EnableDnsHostnames" : true
       }
     },
     
-    "SubnetBackend" : {
-      "Type" : "AWS::EC2::Subnet",
+    "InternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
       "Properties" : {
-        "VpcId" : "vpc-3f76ab5a",
-        "CidrBlock" : "172.31.100.0/27",
-        "AvailabilityZone" : "us-west-2a",
         "Tags" : [
           {
             "Key" : "Name",
-            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "-SubnetBackend"]]}
+            "Value" : "InternetGateway"
           }
         ]
       }
     },
     
-    "SubnetDirector" : {
-      "Type" : "AWS::EC2::Subnet",
+    "VPCGatewayAttachment" : {
+      "Type" : "AWS::EC2::VPCGatewayAttachment",
       "Properties" : {
-        "VpcId" : "vpc-3f76ab5a",
-        "CidrBlock" : "172.31.101.0/27",
-        "AvailabilityZone" : "us-west-2a",
+        "InternetGatewayId" : {
+          "Ref" : "InternetGateway"
+        },
+        "VpcId" : {"Ref" : "VPC"}
+      }
+    },
+    
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"},
         "Tags" : [
           {
             "Key" : "Name",
-            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "-SubnetDirector"]]}
+            "Value" : "PublicRouteTable"
           }
         ]
+      }
+    },
+    "OutboundConnectionRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : {
+          "Ref" : "InternetGateway"
+        },
+        "RouteTableId" : {
+          "Ref" : "PublicRouteTable"
+        }
+      }
+    },
+    "DirectSN" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {"Ref" : "AvailabilityZone"},
+        "CidrBlock" : "11.0.0.0/24",
+        "VpcId" : {"Ref" : "VPC"},
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "DirectSN"
+          }
+        ]
+      }
+    },
+    "BackendSN" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {"Ref" : "AvailabilityZone"},
+        "CidrBlock" : "11.0.1.0/24",
+        "VpcId" : {"Ref" : "VPC"},
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "BackendSN"
+          }
+        ]
+      }
+    },
+    "DirectSNRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : {
+          "Ref" : "PublicRouteTable"
+        },
+        "SubnetId" : {"Ref" : "DirectSN"}
+      }
+    },
+    "BackendSNRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : {
+          "Ref" : "PublicRouteTable"
+        },
+        "SubnetId" : {"Ref" : "BackendSN"}
+      }
+    },
+    "WebServerSG" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"},
+        "GroupDescription" : "Allows inbound http traffic",
+        "SecurityGroupIngress" : [
+          {
+            "CidrIp" : "0.0.0.0/0",
+            "FromPort" : 143,
+            "IpProtocol" : "tcp",
+            "ToPort" : 143
+          }
+        ],
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "http"
+          }
+        ]
+      }
+    },
+    "LoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "LoadBalancerName" : {"Fn::Join" : ["", ["NLBDirector-", {"Ref" : "AWS::StackName"}]]},
+        "Listeners" : [
+          {
+            "InstancePort" : 143,
+            "InstanceProtocol" : "TCP",
+            "LoadBalancerPort" : 143,
+            "Protocol" : "TCP"
+          }
+        ],
+        "Scheme" : "internet-facing",
+        "SecurityGroups" : [{"Ref" : "WebServerSG"}],
+        "Subnets" : [{"Ref" : "DirectSN"}]
       }
     },
     
@@ -80,6 +178,7 @@
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
         "GroupDescription" : "Enable SSH access via port 22",
+        "VpcId" : {"Ref" : "VPC"},
         "SecurityGroupIngress" : [
           {
             "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : {"Ref" : "SSHLocation"}
@@ -100,23 +199,79 @@
       }
     },
     
+    "FileSystem" : {
+      "Type" : "AWS::EFS::FileSystem",
+      "Properties" : {
+        "PerformanceMode" : "generalPurpose",
+        "FileSystemTags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", ["EFS-", {"Ref" : "AWS::StackName"}]]}
+          }
+        ]
+      }
+    },
+    "MountTargetSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"},
+        "GroupDescription" : "Security group for mount target",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "0",
+            "ToPort" : "65535",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "MountTarget1" : {
+      "Type" : "AWS::EFS::MountTarget",
+      "Properties" : {
+        "FileSystemId" : {"Ref" : "FileSystem"},
+        "SubnetId" : {"Ref" : "DirectSN"},
+        "SecurityGroups" : [{"Ref" : "MountTargetSecurityGroup"}]
+      }
+    },
+    
+    "MountTarget2" : {
+      "Type" : "AWS::EFS::MountTarget",
+      "Properties" : {
+        "FileSystemId" : {"Ref" : "FileSystem"},
+        "SubnetId" : {"Ref" : "BackendSN"},
+        "SecurityGroups" : [{"Ref" : "MountTargetSecurityGroup"}]
+      }
+    },
+    
+    "IamProfile" : {
+      "Type" : "AWS::IAM::InstanceProfile",
+      "Properties" : {
+        "Path" : "/",
+        "Roles" : ["access_shdevops_s3bucket"]
+      }
+    },
+    
     "EC2Postfix" : {
       "Type" : "AWS::EC2::Instance",
+      "DependsOn" : ["FileSystem", "MountTarget1", "MountTarget2"],
       "Properties" : {
         "InstanceType" : {"Ref" : "InstanceType"},
-        "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
         "KeyName" : {"Ref" : "KeyName"},
-        "ImageId" : {
-          "Fn::FindInMap" : [
-            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
-            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
-          ]
-        },
+        "ImageId" : {"Ref" : "ImageId"},
         "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "NetworkInterfaces" : [
+          {
+            "AssociatePublicIpAddress" : "true",
+            "DeviceIndex" : "0",
+            "GroupSet" : [{"Ref" : "InstanceSecurityGroup"}],
+            "SubnetId" : {"Ref" : "BackendSN"}
+          }
+        ],
         "Tags" : [
           {
             "Key" : "Name",
-            "Value" : "EC2_Postfix"
+            "Value" : {"Fn::Join" : ["", ["Postfix-", {"Ref" : "AWS::StackName"}]]}
           }
         ],
         "UserData" : {
@@ -130,6 +285,7 @@
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "mkdir -p /efs && cd / && mount -t efs ", {"Ref" : "FileSystem"}, ":/ efs && rm -rf /efs/*\n",
                 "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"},
                 " --region ", {"Ref" : "AWS::Region"},
                 " --resource EC2Postfix ",
@@ -169,11 +325,13 @@
     
     "ASGDovecotBackend" : {
       "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn" : ["FileSystem", "MountTarget1", "MountTarget2"],
       "Properties" : {
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotBackend"},
         "MinSize" : "2",
-        "MaxSize" : "2",
-        "AvailabilityZones" : ["us-west-2a"],
+        "DesiredCapacity" : "2",
+        "MaxSize" : "4",
+        "VPCZoneIdentifier" : [{"Ref" : "BackendSN"}],
         "Tags" : [
           {
             "Key" : "Name",
@@ -207,13 +365,9 @@
         "InstanceType" : {"Ref" : "InstanceType"},
         "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
         "KeyName" : {"Ref" : "KeyName"},
-        "ImageId" : {
-          "Fn::FindInMap" : [
-            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
-            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
-          ]
-        },
+        "ImageId" : {"Ref" : "ImageId"},
         "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "AssociatePublicIpAddress" : true,
         "UserData" : {
           "Fn::Base64" : {
             "Fn::Join" : [
@@ -225,6 +379,7 @@
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "mkdir -p /efs && cd / && mount -t efs ", {"Ref" : "FileSystem"}, ":/ efs\n",
                 "cd /mnt",
                 " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
                 " && chmod +x /mnt/post_dovecot_demo/initial_dovecotbackend.sh && sh /mnt/post_dovecot_demo/initial_dovecotbackend.sh\n",
@@ -238,11 +393,14 @@
     
     "ASGDovecotDirector" : {
       "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn" : ["FileSystem", "MountTarget1", "MountTarget2"],
       "Properties" : {
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
         "MinSize" : "2",
-        "MaxSize" : "3",
-        "AvailabilityZones" : ["us-west-2a"],
+        "DesiredCapacity" : "2",
+        "MaxSize" : "4",
+        "LoadBalancerNames" : [{"Ref" : "LoadBalancer"}],
+        "VPCZoneIdentifier" : [{"Ref" : "DirectSN"}],
         "Tags" : [
           {
             "Key" : "Name",
@@ -276,13 +434,9 @@
         "InstanceType" : {"Ref" : "InstanceType"},
         "SecurityGroups" : [{"Ref" : "InstanceSecurityGroup"}],
         "KeyName" : {"Ref" : "KeyName"},
-        "ImageId" : {
-          "Fn::FindInMap" : [
-            "AWSRegionArch2AMI", {"Ref" : "AWS::Region"},
-            {"Fn::FindInMap" : ["AWSInstanceType2Arch", {"Ref" : "InstanceType"}, "Arch"]}
-          ]
-        },
+        "ImageId" : {"Ref" : "ImageId"},
         "IamInstanceProfile" : {"Ref" : "IamProfile"},
+        "AssociatePublicIpAddress" : true,
         "UserData" : {
           "Fn::Base64" : {
             "Fn::Join" : [
@@ -294,6 +448,7 @@
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
+                "mkdir -p /efs && cd / && mount -t efs ", {"Ref" : "FileSystem"}, ":/ efs\n",
                 "cd /mnt",
                 " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
                 " && chmod +x /mnt/post_dovecot_demo/initial_dovecotdirector.sh && sh /mnt/post_dovecot_demo/initial_dovecotdirector.sh\n",
@@ -318,6 +473,18 @@
     "ASGDovecotDirector" : {
       "Description" : "ASG ID",
       "Value" : {"Fn::Join" : ["", [{"Ref" : "ASGDovecotDirector"}, " "]]}
+    },
+    "VPC" : {
+      "Description" : "VPC info",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "VPC"}, " "]]}
+    },
+    "LoadBalancer" : {
+      "Description" : "LoadBalancer info",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "LoadBalancer"}, " | ", {"Fn::GetAtt" : ["LoadBalancer", "DNSName"]}]]}
+    },
+    "EFS" : {
+      "Description" : "EFS info",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "FileSystem"}, ""]]}
     }
   }
 }
