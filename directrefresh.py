@@ -54,7 +54,7 @@ if len(ips_backend) > 0 and len(ips_director) > 0:
 
 
         os.rename('/mnt/post_dovecot_demo/10-director_new.conf', '/etc/dovecot/conf.d/10-director.conf')
-        os.system('service dovecot reload')
+        os.system('doveadm reload')
 
 else:
     print '%s :: ERROR Dovecot backend or director is not ready !!! backend(%s), director(%s)' % (datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), ips_backend[0], ips_director[0])
