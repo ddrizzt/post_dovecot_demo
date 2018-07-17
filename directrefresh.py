@@ -1,6 +1,7 @@
 import mysql.connector
 import sys
 import os
+import subprocess
 import logging
 import logging.config
 
@@ -83,8 +84,13 @@ if len(ips_backend) > 0 and len(ips_director) > 0:
         # This add command should only be called on one director at a time. Or it will cause un-expected issue.
         # Backend add or move have to reboot the service or use 'doveadm director add/remove' logic.
         # os.system('doveadm reload')
-        os.system('serivce dovecot restart')
-
+        # os.system('service dovecot restart')
+        cmd_restart = '/bin/systemctl restart dovecot.service'
+        logger.info("Restart dovecot service :: " + cmd_restart)
+        p = subprocess.Popen(cmd_restart, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            logger.info("Exec return:" + line[:-1])
+        retval = p.wait()
 
 else:
     logger.error('ERROR Dovecot backend or director is not ready !!! backend(%s), director(%s)' % (ips_backend[0], ips_director[0]))
