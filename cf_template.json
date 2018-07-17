@@ -448,7 +448,6 @@
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
-                "mkdir -p /efs && cd / && mount -t efs ", {"Ref" : "FileSystem"}, ":/ efs\n",
                 "cd /mnt",
                 " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
                 " && chmod +x /mnt/post_dovecot_demo/initial_dovecotdirector.sh && sh /mnt/post_dovecot_demo/initial_dovecotdirector.sh\n",
