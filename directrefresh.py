@@ -1,9 +1,34 @@
 import mysql.connector
 import sys
-import datetime
 import os
+import logging
+import logging.config
 
-print '%s :: ====== Start =====' % datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+#############################################
+###### Initial logging
+#############################################
+# create logger
+logger_name = "simple"
+logger = logging.getLogger(logger_name)
+logger.setLevel(logging.INFO)
+
+# create file handler
+log_path = "/mnt/post_dovecot_demo/logs/directrefresh.log"
+
+fh = logging.FileHandler(log_path)
+fh.setLevel(logging.INFO)
+
+# create formatter
+fmt = "%(asctime)s - %(levelname)s - %(message)s"
+datefmt = "%a %d %b %Y %H:%M:%S"
+formatter = logging.Formatter(fmt, datefmt)
+
+# add handler and formatter to logger
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+#############################################
+
+logger.info('================ Start ===============')
 
 db = mysql.connector.connect(host="dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com", user="dovecot", password="dovecot123", database="servermail2")
 
@@ -29,14 +54,14 @@ if len(ips_backend) > 0 and len(ips_director) > 0:
     ips_director_str = ips_director[0]
     ips_backend_str = ips_backend[0]
 
-    print '%s :: Dovecot directors [%s]' % (datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), ips_director_str)
-    print '%s :: Dovecot backends [%s]' % (datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), ips_backend_str)
+    logger.info('Dovecot directors [%s]' % ips_director_str)
+    logger.info('Dovecot backends [%s]' % ips_backend_str)
 
     # Check IPs updated or not.
     if ips_backend_str == ips_backend_fromf and ips_director_str == ips_director__fromf:
-        print '%s :: Address unchanged.' % datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        logger.info('Address unchanged.')
     else:
-        print '%s :: Address updated, refresh director configure file.' % datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        logger.info('Address updated, refresh director configure file.')
         # Update dovecot director conf file
         with open("./10-director.conf", "rt") as fin:
             with open("./10-director_new.conf", "wt") as fout:
@@ -52,13 +77,18 @@ if len(ips_backend) > 0 and len(ips_director) > 0:
         with open('/mnt/post_dovecot_demo/ipsdirector.dat', 'w') as text_file:
             text_file.write(ips_director_str)
 
-
         os.rename('/mnt/post_dovecot_demo/10-director_new.conf', '/etc/dovecot/conf.d/10-director.conf')
-        os.system('doveadm reload')
+
+        # For demo show I used doveadm reload command here, for production here should use 'doveadm ring add ip port' instead.
+        # This add command should only be called on one director at a time. Or it will cause un-expected issue.
+        # Backend add or move have to reboot the service or use 'doveadm director add/remove' logic.
+        # os.system('doveadm reload')
+        os.system('serivce dovecot restart')
+
 
 else:
-    print '%s :: ERROR Dovecot backend or director is not ready !!! backend(%s), director(%s)' % (datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), ips_backend[0], ips_director[0])
+    logger.error('ERROR Dovecot backend or director is not ready !!! backend(%s), director(%s)' % (ips_backend[0], ips_director[0]))
 
-print '%s :: ====== END =====' % datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+logger.info('================ END ===============')
 
 sys.exit(0)

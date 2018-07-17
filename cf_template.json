@@ -280,7 +280,7 @@
               "", [
                 "#!/bin/bash\n",
                 "yum install -y python-pip tree mysql amazon-efs-utils telnet\n",
-                "pip install s3cmd s4cmd\n",
+                "pip install logging s3cmd s4cmd\n",
                 "chmod +x /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
@@ -374,7 +374,7 @@
               "", [
                 "#!/bin/bash\n",
                 "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
-                "pip install s3cmd s4cmd\n",
+                "pip install logging s3cmd s4cmd\n",
                 "chmod +x /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
@@ -443,7 +443,7 @@
               "", [
                 "#!/bin/bash\n",
                 "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
-                "pip install s3cmd s4cmd mysql-connector-python\n",
+                "pip install logging s3cmd s4cmd mysql-connector-python\n",
                 "chmod +x /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
