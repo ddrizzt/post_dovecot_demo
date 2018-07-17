@@ -82,9 +82,9 @@ if len(ips_backend) > 0 and len(ips_director) > 0:
 
         # For demo show I used doveadm reload command here, for production here should use 'doveadm ring add ip port' instead.
         # This add command should only be called on one director at a time. Or it will cause un-expected issue.
-        # Backend add or move have to reboot the service or use 'doveadm director add/remove' logic.
-        # os.system('doveadm reload')
-        # os.system('service dovecot restart')
+        # TBD here:
+        # doveadm director add/remove [backend_ip]
+        # doveadm director ring add/remove [direct_ip]
         cmd_restart = '/bin/systemctl restart dovecot.service'
         logger.info("Restart dovecot service :: " + cmd_restart)
         p = subprocess.Popen(cmd_restart, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
