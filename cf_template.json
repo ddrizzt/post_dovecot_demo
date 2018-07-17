@@ -252,7 +252,7 @@
       }
     },
     
-    "EC2Postfix" : {
+    "PostfixServer" : {
       "Type" : "AWS::EC2::Instance",
       "DependsOn" : ["FileSystem", "MountTarget1", "MountTarget2"],
       "Properties" : {
@@ -288,7 +288,7 @@
                 "mkdir -p /efs && cd / && mount -t efs ", {"Ref" : "FileSystem"}, ":/ efs && rm -rf /efs/*\n",
                 "/opt/aws/bin/cfn-init -s ", {"Ref" : "AWS::StackName"},
                 " --region ", {"Ref" : "AWS::Region"},
-                " --resource EC2Postfix ",
+                " --resource PostfixServer ",
                 " --configsets Initialize\n"
               ]
             ]
@@ -464,7 +464,7 @@
   "Outputs" : {
     "EC2PublicInfoPostfix" : {
       "Description" : "Public InstanceID / DNS / IP of postfix_ec2.",
-      "Value" : {"Fn::Join" : ["", [{"Ref" : "EC2Postfix"}, " / ", {"Fn::GetAtt" : ["EC2Postfix", "PublicDnsName"]}, " / ", {"Fn::GetAtt" : ["EC2Postfix", "PublicIp"]}]]}
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "PostfixServer"}, " / ", {"Fn::GetAtt" : ["PostfixServer", "PublicDnsName"]}, " / ", {"Fn::GetAtt" : ["PostfixServer", "PublicIp"]}]]}
     },
     "ASGDovecotBackend" : {
       "Description" : "ASG ID",
