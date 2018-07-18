@@ -29,7 +29,7 @@
     },
     "ImageId" : {
       "Type" : "String",
-      "Default" : "ami-a9d09ed1"
+      "Default" : "ami-0ad99772"
     }
   },
   
@@ -180,21 +180,12 @@
         "GroupDescription" : "Enable SSH access via port 22",
         "VpcId" : {"Ref" : "VPC"},
         "SecurityGroupIngress" : [
-          {
-            "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : {"Ref" : "SSHLocation"}
-          },
-          {
-            "IpProtocol" : "tcp", "FromPort" : "143", "ToPort" : "143", "CidrIp" : {"Ref" : "SSHLocation"}
-          },
-          {
-            "IpProtocol" : "tcp", "FromPort" : "110", "ToPort" : "110", "CidrIp" : {"Ref" : "SSHLocation"}
-          },
-          {
-            "IpProtocol" : "tcp", "FromPort" : "9090", "ToPort" : "9090", "CidrIp" : {"Ref" : "SSHLocation"}
-          },
-          {
-            "IpProtocol" : "tcp", "FromPort" : "25", "ToPort" : "25", "CidrIp" : {"Ref" : "SSHLocation"}
-          }
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : {"Ref" : "SSHLocation"}},
+          {"IpProtocol" : "tcp", "FromPort" : "143", "ToPort" : "143", "CidrIp" : {"Ref" : "SSHLocation"}},
+          {"IpProtocol" : "tcp", "FromPort" : "110", "ToPort" : "110", "CidrIp" : {"Ref" : "SSHLocation"}},
+          {"IpProtocol" : "tcp", "FromPort" : "9090", "ToPort" : "9090", "CidrIp" : {"Ref" : "SSHLocation"}},
+          {"IpProtocol" : "tcp", "FromPort" : "4505", "ToPort" : "4506", "CidrIp" : {"Ref" : "SSHLocation"}},
+          {"IpProtocol" : "tcp", "FromPort" : "25", "ToPort" : "25", "CidrIp" : {"Ref" : "SSHLocation"}}
         ]
       }
     },
@@ -279,10 +270,14 @@
             "Fn::Join" : [
               "", [
                 "#!/bin/bash\n",
-                "yum install -y python-pip tree mysql amazon-efs-utils telnet\n",
+                "yum -y install python-pip tree mysql amazon-efs-utils telnet postfix\n",
                 "pip install logging s3cmd s4cmd\n",
-                "chmod +x /usr/bin/s3cmd\n",
+                "ls /usr/local/bin/s4cmd && chmod +x /usr/local/bin/s4cmd && ln -s /usr/local/bin/s4cmd /usr/bin/s4cmd\n",
+                "ls /usr/local/bin/s3cmd && chmod +x /usr/local/bin/s3cmd && ln -s /usr/local/bin/s3cmd /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
+                "cd /mnt && wget -O bootstrap-salt.sh https://bootstrap.saltstack.com && sudo sh bootstrap-salt.sh -M -P git develop\n",
+                "echo $'\nauto_accept: True\n' >> /etc/salt/master\n",
+                "service salt-master restart\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
                 "mkdir -p /efs && cd / && mount -t efs ", {"Ref" : "FileSystem"}, ":/ efs && rm -rf /efs/*\n",
@@ -375,7 +370,8 @@
                 "#!/bin/bash\n",
                 "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
                 "pip install logging s3cmd s4cmd\n",
-                "chmod +x /usr/bin/s3cmd\n",
+                "ls /usr/local/bin/s4cmd && chmod +x /usr/local/bin/s4cmd && ln -s /usr/local/bin/s4cmd /usr/bin/s4cmd\n",
+                "ls /usr/local/bin/s3cmd && chmod +x /usr/local/bin/s3cmd && ln -s /usr/local/bin/s3cmd /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",
@@ -393,7 +389,7 @@
     
     "ASGDovecotDirector" : {
       "Type" : "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn" : ["FileSystem", "MountTarget1", "MountTarget2"],
+      "DependsOn" : ["FileSystem", "MountTarget1", "MountTarget2", "PostfixServer"],
       "Properties" : {
         "LaunchConfigurationName" : {"Ref" : "LaunchConfigDovecotDirector"},
         "MinSize" : "2",
@@ -444,7 +440,11 @@
                 "#!/bin/bash\n",
                 "yum install -y amazon-efs-utils python-pip tree mysql dovecot dovecot-mysql telnet\n",
                 "pip install logging s3cmd s4cmd mysql-connector-python\n",
-                "chmod +x /usr/bin/s3cmd\n",
+                "ls /usr/local/bin/s4cmd && chmod +x /usr/local/bin/s4cmd && ln -s /usr/local/bin/s4cmd /usr/bin/s4cmd\n",
+                "ls /usr/local/bin/s3cmd && chmod +x /usr/local/bin/s3cmd && ln -s /usr/local/bin/s3cmd /usr/bin/s3cmd\n",
+                "cd /mnt && wget -O bootstrap-salt.sh https://bootstrap.saltstack.com && sudo sh bootstrap-salt.sh -P git develop\n",
+                "echo $'\nmaster: ", {"Fn::GetAtt" : ["PostfixServer", "PrivateIp"]}, "\n' >> /etc/salt/minion\n",
+                "service salt-minion restart\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",

@@ -13,5 +13,5 @@ cd /mnt/post_dovecot_demo/ && \
 
 
 if [ $1 = "director" ] ; then
-    cd /mnt/post_dovecot_demo/ && python directrefresh.py
+    #cd /mnt/post_dovecot_demo/ && python directrefresh.py
 fi

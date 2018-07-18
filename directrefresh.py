@@ -85,12 +85,12 @@ if len(ips_backend) > 0 and len(ips_director) > 0:
         # TBD here:
         # doveadm director add/remove [backend_ip]
         # doveadm director ring add/remove [direct_ip]
-        cmd_restart = '/bin/systemctl restart dovecot.service'
-        logger.info("Restart dovecot service :: " + cmd_restart)
-        p = subprocess.Popen(cmd_restart, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in p.stdout.readlines():
-            logger.info("Exec return:" + line[:-1])
-        retval = p.wait()
+        # cmd_restart = '/bin/systemctl restart dovecot.service'
+        # logger.info("Restart dovecot service :: " + cmd_restart)
+        # p = subprocess.Popen(cmd_restart, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # for line in p.stdout.readlines():
+        #     logger.info("Exec return:" + line[:-1])
+        # retval = p.wait()
 
 else:
     logger.error('ERROR Dovecot backend or director is not ready !!! backend(%s), director(%s)' % (ips_backend[0], ips_director[0]))

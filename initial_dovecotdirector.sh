@@ -12,4 +12,5 @@ cd /mnt/post_dovecot_demo/ && cat 10-director.conf | perl -ne ' chomp($_);  $str
 chmod +x /mnt/post_dovecot_demo/heartbeat.sh
 mkdir -p /mnt/post_dovecot_demo/logs/
 echo "* * * * * /mnt/post_dovecot_demo/heartbeat.sh director >> /mnt/post_dovecot_demo/logs/heartbeats.log 2>&1" > heartbeat.cron && crontab -u root heartbeat.cron && rm -f heartbeat.cron
-service dovecot restart
+
+#service dovecot restart

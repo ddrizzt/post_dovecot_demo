@@ -12,6 +12,9 @@ useradd -u 2105 peter -p abc123
 mkdir -p /efs/Mail && chmod 777 /efs/Mail
 mkdir -p /efs/dovecotindex && chmod 777 /efs/dovecotindex
 
+# Try to shutdown sendmail service first
+service sendmail stop
+
 # Replace postfix config file and restart
 cd /mnt/post_dovecot_demo/ && cat postfix_main.cf | perl -ne ' chomp($_);  $str = $_; $str =~ s/\[DOMAIN\]/$ENV{'DOMAIN'}/g; print "$str\n";' > main.cf
 mv /etc/postfix/main.cf /etc/postfix/main.cf.bak && mv /mnt/post_dovecot_demo/main.cf /etc/postfix/main.cf
