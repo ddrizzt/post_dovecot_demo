@@ -271,7 +271,7 @@
               "", [
                 "#!/bin/bash\n",
                 "yum -y install python-pip tree mysql amazon-efs-utils telnet postfix\n",
-                "pip install logging s3cmd s4cmd\n",
+                "pip install logging s3cmd s4cmd mysql-connector-python\n",
                 "ls /usr/local/bin/s4cmd && chmod +x /usr/local/bin/s4cmd && ln -s /usr/local/bin/s4cmd /usr/bin/s4cmd\n",
                 "ls /usr/local/bin/s3cmd && chmod +x /usr/local/bin/s3cmd && ln -s /usr/local/bin/s3cmd /usr/bin/s3cmd\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
@@ -307,7 +307,7 @@
                       "cd /mnt",
                       " && s3cmd get --force s3://gd-shdevops/eason/datastream/code/post_dovecot_demo.tar.gz ./ && tar zxf post_dovecot_demo.tar.gz",
                       " && export DOMAIN=`curl -s http://169.254.169.254/latest/meta-data/public-hostname`",
-                      " && chmod +x /mnt/post_dovecot_demo/initial_postfix.sh && sh /mnt/post_dovecot_demo/initial_postfix.sh"
+                      " && chmod +x /mnt/post_dovecot_demo/initial_postfix.sh && mkdir /mnt/post_dovecot_demo/logs && sh /mnt/post_dovecot_demo/initial_postfix.sh"
                     ]
                   ]
                 }
@@ -372,6 +372,9 @@
                 "pip install logging s3cmd s4cmd\n",
                 "ls /usr/local/bin/s4cmd && chmod +x /usr/local/bin/s4cmd && ln -s /usr/local/bin/s4cmd /usr/bin/s4cmd\n",
                 "ls /usr/local/bin/s3cmd && chmod +x /usr/local/bin/s3cmd && ln -s /usr/local/bin/s3cmd /usr/bin/s3cmd\n",
+                "cd /mnt && wget -O bootstrap-salt.sh https://bootstrap.saltstack.com && sudo sh bootstrap-salt.sh -P git develop\n",
+                "echo $'\nmaster: ", {"Fn::GetAtt" : ["PostfixServer", "PrivateIp"]}, "\n' >> /etc/salt/minion\n",
+                "service salt-minion restart\n",
                 "cd /mnt && curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip\n",
                 "unzip awscli-bundle.zip\n",
                 "sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws\n",

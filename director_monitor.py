@@ -7,6 +7,7 @@ import logging.config
 import salt
 import salt.client
 import json
+import dcmaster
 
 #############################################
 ###### Initial logging
@@ -23,7 +24,6 @@ log_path = "/mnt/post_dovecot_demo/logs/directmonitor.log"
 fh = logging.FileHandler(log_path)
 fh.setLevel(logging.INFO)
 
-
 # create formatter
 fmt = "%(asctime)s - %(levelname)s - %(message)s"
 datefmt = "%a %d %b %Y %H:%M:%S"
@@ -33,15 +33,18 @@ formatter = logging.Formatter(fmt, datefmt)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 #############################################
+argv = ''
+if len(sys.argv) > 1:
+    argv = sys.argv[1:]
 
 logger.info('================ Start ===============')
 
-db = mysql.connector.connect(host="dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com", user="dovecot", password="dovecot123", database="servermail2")
+dcm = dcmaster.DCMaster(logger)
+if argv == 'initial':
+    dcm.initialClusterByHeartBeat()
+elif argv == 'monitoring':
+    dcm.monitorWholeCluster()
 
-sclient = salt.client.LocalClient()
-resp = sclient.cmd('*', 'cmd.run', ['doveadm director status'])
-print resp
 
 logger.info('================ END ===============')
-
 sys.exit(0)
