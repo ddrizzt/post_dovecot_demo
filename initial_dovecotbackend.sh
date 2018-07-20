@@ -4,6 +4,7 @@
 #cd / && mount -t efs fs-62f299cb:/ efs
 
 # Replace dovecot configure file & restart dovecot
+mkdir -p /mnt/post_dovecot_demo/logs/
 mv /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.bak
 cp /mnt/post_dovecot_demo/dovecot_backend.conf /etc/dovecot/dovecot.conf
 cp /mnt/post_dovecot_demo/dovecot-bg-sql.conf.ext /etc/dovecot/

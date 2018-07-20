@@ -44,7 +44,7 @@ VALUES
 
 
 /**
- Tables to maintain the dovecot director and backend server list.
+ Tables to maintain the heartbeat info from dovecot director and backend.
  */
 DROP TABLE IF exists `backend_director_ips`;
 CREATE TABLE `backend_director_ips` (
@@ -52,6 +52,22 @@ CREATE TABLE `backend_director_ips` (
   `local_ip4` varchar(25) NOT NULL,
   `public_dns` varchar(100) NOT NULL,
   `private_dns` varchar(100) NOT NULL,
+  `status` int NOT NULL, /* 1 OK, 2 NOT OK */
+  `updated_at` timestamp NOT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`type`, `local_ip4`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+/**
+ This table store the current SaltMaster monitor status for dovecot cluster
+ */
+DROP TABLE IF exists `backend_director_monitoring`;
+CREATE TABLE `backend_director_monitoring` (
+  `type` varchar(10) NOT NULL, /* director or backend */
+  `local_ip4` varchar(25) NOT NULL,
+  `public_dns` varchar(100) NOT NULL,
+  `private_dns` varchar(100) NOT NULL,
+  `status` int NOT NULL, /* 1: OK and under monitoring, 2: NOT OK will be kicked from the cluster, 3: Kicked from the cluster, 0: New cluster, will be added to cluster. */
   `updated_at` timestamp NOT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`type`, `local_ip4`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
