@@ -12,4 +12,7 @@ Sample CMD:<br/>
 aws cloudformation create-stack --stack-name {StackName} --template-body file:///Users/eason/..../cf_template.json  --parameters ParameterKey=KeyName,ParameterValue={RSA_KEY_FILE} --region us-west-2 --capabilities CAPABILITY_IAM<br/>
 aws cloudformation delete-stack --stack-name {StackName}<br/><br/>
 
+NOTE:
+For V1.3 ONLY! After enviroment set, call "cd /mnt/post_dovecot_demo/ && python director_monitor.py initial" on postfix ec2 to boot whole dovecot cluster!
+
 #############################################<br/>
