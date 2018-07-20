@@ -168,6 +168,13 @@
             "Protocol" : "TCP"
           }
         ],
+        "HealthCheck" : {
+          "Target" : "TCP:143",
+          "HealthyThreshold" : "3",
+          "UnhealthyThreshold" : "5",
+          "Interval" : "5",
+          "Timeout" : "3"
+        },
         "Scheme" : "internet-facing",
         "SecurityGroups" : [{"Ref" : "WebServerSG"}],
         "Subnets" : [{"Ref" : "DirectSN"}]

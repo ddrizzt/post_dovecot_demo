@@ -28,3 +28,5 @@ mysql -hdovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com -udovecot -pdovecot
 #Send some test mail
 cd /mnt/post_dovecot_demo/ && cat sendtestmail.sh | perl -ne ' chomp($_);  $str = $_; $str =~ s/\[DOMAIN\]/$ENV{'DOMAIN'}/g; print "$str\n";' > /mnt/post_dovecot_demo/sendtestmail_new.sh
 chmod +x /mnt/post_dovecot_demo/sendtestmail_new.sh && sh /mnt/post_dovecot_demo/sendtestmail_new.sh
+
+

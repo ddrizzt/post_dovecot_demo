@@ -27,7 +27,7 @@ class DCMaster:
         return resp
 
     def getHeartbeatInfo(self):
-        heartbeat = {}
+        hb = {}
         # Read from DB first
         db = mysql.connector.connect(host="dovecotauth.cocsmvpnuzlc.us-west-2.rds.amazonaws.com", user="dovecot", password="dovecot123", database="servermail2")
         cursor = db.cursor()
@@ -39,9 +39,9 @@ class DCMaster:
             privatedns = row[2]
             publicdns = row[3]
             updated_at = ''
-            heartbeat[privatedns] = {'type': type, 'ip': ip4, 'private_dns': privatedns, 'public_dns': publicdns, 'status': '0', 'updated_at': updated_at}
+            hb[privatedns] = {'type': type, 'ip': ip4, 'private_dns': privatedns, 'public_dns': publicdns, 'status': '0', 'updated_at': updated_at}
         db.close()
-        return heartbeat
+        return hb
 
     def flushDBData(self):
         rows = []
@@ -87,7 +87,6 @@ class DCMaster:
             if self.backends[key]['status'] != '1':
                 continue
             backends.append(self.backends[key]['ip'])
-
 
         directors = []
         for key in self.directors:
@@ -143,6 +142,20 @@ class DCMaster:
 
     def monitorWholeCluster(self):
         self.log.info('Start whole dovecluster monitoring...')
+        # Get heartbeat data from DB.
+        hbData = self.getHeartbeatInfo()
 
-
+        # Run ping test against directors and backends and compare with DB heartbeat data.
+        resp = self.sclient.cmd('*', 'test.ping')
+        # TODO Here!!!!
+        for key in resp:
+            if self.backends.has_key(key) and resp[key] == True:
+                self.backends[key]['status'] = '1'
+            elif self.backends.has_key(key) and resp[key] == False:
+                self.backends[key]['status'] = '1'
+            elif self.directors.has_key(key) and resp[key] == True:
+                self.directors[key]['status'] = '1'
+            elif self.backends.has_key(key) == False and self.backends.has_key(key) == False:
+                # New node found!
+                self.log.info('New node found: %s' % key)
 

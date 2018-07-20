@@ -4,6 +4,7 @@ import os
 import subprocess
 import logging
 import logging.config
+import time
 import salt
 import salt.client
 import json
@@ -38,13 +39,20 @@ if len(sys.argv) > 1:
     argv = sys.argv[1:]
 
 logger.info('================ Start ===============')
-
+logger.info('Input parameter %s' % argv)
 dcm = dcmaster.DCMaster(logger)
-if argv == 'initial':
+if argv[0] == 'initial':
     dcm.initialClusterByHeartBeat()
-elif argv == 'monitoring':
-    dcm.monitorWholeCluster()
-
+elif argv[0] == 'monitoring':
+    try:
+        batch = 0
+        while True:
+            logger.info('Start monitoring batch %s' % batch)
+            dcm.monitorWholeCluster()
+            batch += 1
+            time.sleep(5)
+    except Exception, err:
+        logger.error('%s' % err)
 
 logger.info('================ END ===============')
 sys.exit(0)
