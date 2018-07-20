@@ -39,7 +39,13 @@
       "Properties" : {
         "CidrBlock" : "11.0.0.0/16",
         "EnableDnsSupport" : true,
-        "EnableDnsHostnames" : true
+        "EnableDnsHostnames" : true,
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : {"Fn::Join" : ["", [{"Ref" : "AWS::StackName"}, "-VPC"]]}
+          }
+        ]
       }
     },
     

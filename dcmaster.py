@@ -7,6 +7,8 @@ import logging.config
 import salt
 import salt.client
 import json
+import re
+import time
 
 
 class DCMaster:
@@ -140,22 +142,60 @@ class DCMaster:
 
         self.updateDirectorConfig()
 
+    def checkNodeStatus(self, node, skipfailed=True):
+        status = dict()
+        resp = self.saltExec(node, 'service dovecot status 2>/dev/null')
+        for key in resp:
+            passed = re.match(r'dovecot\s+\(pid\s+\d+\)\s+is\s+running...', resp[key]) is not None
+            if skipfailed and passed == False:
+                continue
+            status[key] = passed
+
+        return status
+
+    def checkBackendSynced(self):
+        # Get backend list from directors
+        resp = self.saltExec('*11-0-0-*', 'doveadm director status')
+
+        return True
+
     def monitorWholeCluster(self):
         self.log.info('Start whole dovecluster monitoring...')
         # Get heartbeat data from DB.
         hbData = self.getHeartbeatInfo()
 
         # Run ping test against directors and backends and compare with DB heartbeat data.
-        resp = self.sclient.cmd('*', 'test.ping')
+        nodeStatus = self.checkNodeStatus('*', False)
         # TODO Here!!!!
-        for key in resp:
-            if self.backends.has_key(key) and resp[key] == True:
-                self.backends[key]['status'] = '1'
-            elif self.backends.has_key(key) and resp[key] == False:
-                self.backends[key]['status'] = '1'
-            elif self.directors.has_key(key) and resp[key] == True:
-                self.directors[key]['status'] = '1'
-            elif self.backends.has_key(key) == False and self.backends.has_key(key) == False:
-                # New node found!
-                self.log.info('New node found: %s' % key)
+        for key in nodeStatus:
+            if nodeStatus[key] == False:
+                # Handle failed node!
+                self.log.warn('Node failed %s!' % key)
 
+            else:
+                # Handle running node!
+                if (self.backends.has_key(key) or self.directors.has_key(key)) and hbData.has_key(key):
+                    self.log.info('Node running well. %s' % key)
+                elif not hbData.has_key(key):
+                    # This is a new node but hadn't send out heartbeat info into DB yet. Just wait.
+                    self.log.info('New node find, wait for heartbeat message. %s' % key)
+                elif hbData.has_key(key) and hbData[key]['status'] == '1' and not self.backends.has_key(key) and not self.directors.has_key(key):
+                    # This is a new node and found heartbeat info from DB
+                    self.log.info('New node find, need add to cluster. %s' % key)
+                    if hbData[key]['type'] == 'backend':
+                        self.log.info('Adding new backend..' % key)
+                        retry = 0
+                        resp = False
+                        while retry < 3:
+                            self.saltExec(self.backends[self.backends.keys()[0]], 'doveadm director add %s' % hbData[key]['ip'])
+                            resp = self.checkBackendSynced()
+                            if not resp:
+                                time.sleep(5)
+                                retry += 1
+                                self.log.info('Wait backend data synced...')
+                        if retry < 3 and not resp:
+                            self.log.error('Backend sync failed... Need reboot!')
+                        # TODO here, more words need be done. Very complex!!!!!
+
+                    elif hbData[key]['type'] == 'director':
+                        self.log.info('Adding new director..' % key)
